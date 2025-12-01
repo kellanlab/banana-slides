@@ -271,15 +271,52 @@ def generate_descriptions(project_id):
         if not pages:
             return bad_request("No pages found for project")
         
-        # Reconstruct outline from pages
+        # Reconstruct outline from pages with part structure
         outline = []
+        current_part = None
+        current_part_pages = []
+        
         for page in pages:
             outline_content = page.get_outline_content()
-            if outline_content:
-                page_data = outline_content.copy()
-                if page.part:
-                    page_data['part'] = page.part
+            if not outline_content:
+                continue
+                
+            page_data = outline_content.copy()
+            
+            # 如果当前页面属于一个 part
+            if page.part:
+                # 如果这是新的 part，先保存之前的 part（如果有）
+                if current_part and current_part != page.part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part_pages = []
+                
+                current_part = page.part
+                # 移除 part 字段，因为它在顶层
+                if 'part' in page_data:
+                    del page_data['part']
+                current_part_pages.append(page_data)
+            else:
+                # 如果当前页面不属于任何 part，先保存之前的 part（如果有）
+                if current_part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part = None
+                    current_part_pages = []
+                
+                # 直接添加页面
                 outline.append(page_data)
+        
+        # 保存最后一个 part（如果有）
+        if current_part:
+            outline.append({
+                "part": current_part,
+                "pages": current_part_pages
+            })
         
         data = request.get_json() or {}
         from flask import current_app
@@ -363,15 +400,52 @@ def generate_images(project_id):
         if not pages:
             return bad_request("No pages found for project")
         
-        # Reconstruct outline from pages
+        # Reconstruct outline from pages with part structure
         outline = []
+        current_part = None
+        current_part_pages = []
+        
         for page in pages:
             outline_content = page.get_outline_content()
-            if outline_content:
-                page_data = outline_content.copy()
-                if page.part:
-                    page_data['part'] = page.part
+            if not outline_content:
+                continue
+                
+            page_data = outline_content.copy()
+            
+            # 如果当前页面属于一个 part
+            if page.part:
+                # 如果这是新的 part，先保存之前的 part（如果有）
+                if current_part and current_part != page.part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part_pages = []
+                
+                current_part = page.part
+                # 移除 part 字段，因为它在顶层
+                if 'part' in page_data:
+                    del page_data['part']
+                current_part_pages.append(page_data)
+            else:
+                # 如果当前页面不属于任何 part，先保存之前的 part（如果有）
+                if current_part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part = None
+                    current_part_pages = []
+                
+                # 直接添加页面
                 outline.append(page_data)
+        
+        # 保存最后一个 part（如果有）
+        if current_part:
+            outline.append({
+                "part": current_part,
+                "pages": current_part_pages
+            })
         
         data = request.get_json() or {}
         from flask import current_app

@@ -294,16 +294,53 @@ def generate_page_image(project_id, page_id):
         if not desc_content:
             return bad_request("Page must have description content first")
         
-        # Reconstruct full outline
+        # Reconstruct full outline with part structure
         all_pages = Page.query.filter_by(project_id=project_id).order_by(Page.order_index).all()
         outline = []
+        current_part = None
+        current_part_pages = []
+        
         for p in all_pages:
             oc = p.get_outline_content()
-            if oc:
-                page_data = oc.copy()
-                if p.part:
-                    page_data['part'] = p.part
+            if not oc:
+                continue
+                
+            page_data = oc.copy()
+            
+            # 如果当前页面属于一个 part
+            if p.part:
+                # 如果这是新的 part，先保存之前的 part（如果有）
+                if current_part and current_part != p.part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part_pages = []
+                
+                current_part = p.part
+                # 移除 part 字段，因为它在顶层
+                if 'part' in page_data:
+                    del page_data['part']
+                current_part_pages.append(page_data)
+            else:
+                # 如果当前页面不属于任何 part，先保存之前的 part（如果有）
+                if current_part:
+                    outline.append({
+                        "part": current_part,
+                        "pages": current_part_pages
+                    })
+                    current_part = None
+                    current_part_pages = []
+                
+                # 直接添加页面
                 outline.append(page_data)
+        
+        # 保存最后一个 part（如果有）
+        if current_part:
+            outline.append({
+                "part": current_part,
+                "pages": current_part_pages
+            })
         
         # Initialize services
         from flask import current_app
