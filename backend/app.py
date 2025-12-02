@@ -4,6 +4,9 @@ Simplified Flask Application Entry Point
 import os
 import sys
 from dotenv import load_dotenv
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+import sqlite3
 
 # Load environment variables BEFORE importing anything else
 load_dotenv()
@@ -12,6 +15,27 @@ from flask import Flask
 from flask_cors import CORS
 from models import db
 from controllers import project_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp
+
+
+# Enable SQLite WAL mode for all connections
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_conn, connection_record):
+    """
+    Enable WAL mode and related PRAGMAs for each SQLite connection.
+    Registered once at import time to avoid duplicate handlers when
+    create_app() is called multiple times.
+    """
+    # Only apply to SQLite connections
+    if not isinstance(dbapi_conn, sqlite3.Connection):
+        return
+
+    cursor = dbapi_conn.cursor()
+    try:
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=30000")  # 30 seconds timeout
+    finally:
+        cursor.close()
 
 
 def create_app():
@@ -63,7 +87,6 @@ def create_app():
     app.register_blueprint(export_bp)
     app.register_blueprint(file_bp)
     
-    # Create database tables
     with app.app_context():
         db.create_all()
     
