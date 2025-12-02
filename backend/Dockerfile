@@ -31,18 +31,14 @@ COPY backend/ ./backend/
 # 创建必要的目录
 RUN mkdir -p /app/backend/instance /app/uploads
 
-# 设置环境变量
 ENV PYTHONPATH=/app
 ENV FLASK_APP=backend/app.py
-ENV FLASK_ENV=production
-ENV PORT=5000
 
 # 暴露端口
 EXPOSE 5000
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD ["sh", "-c", "curl -f http://localhost:${PORT:-5000}/health || exit 1"]
 
 # 启动应用
 CMD ["uv", "run", "--directory", "backend", "python", "app.py"]
