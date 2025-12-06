@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, Upload, X, Loader2, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { Button, useToast, Modal } from '@/components/shared';
 import {
@@ -45,15 +45,41 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
   const [isUploading, setIsUploading] = useState(false);
   const [parsingIds, setParsingIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initialSelectedIdsRef = useRef(initialSelectedIds);
+  const showRef = useRef(show);
+
+  // 更新 ref 以保持最新的值，避免将其加入依赖数组导致无限循环
+  useEffect(() => {
+    initialSelectedIdsRef.current = initialSelectedIds;
+    showRef.current = show;
+  }, [initialSelectedIds, show]);
+
+  const loadFiles = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const targetProjectId = projectId || 'global';
+      const response = await listProjectReferenceFiles(targetProjectId);
+      if (response.data?.files) {
+        setFiles(response.data.files);
+      }
+    } catch (error: any) {
+      console.error('加载参考文件列表失败:', error);
+      showRef.current({
+        message: error?.response?.data?.error?.message || error.message || '加载参考文件列表失败',
+        type: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
 
   useEffect(() => {
     if (isOpen) {
       loadFiles();
       // 恢复初始选择
-      setSelectedFiles(new Set(initialSelectedIds));
+      setSelectedFiles(new Set(initialSelectedIdsRef.current));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, projectId]); // 移除 initialSelectedIds 依赖，避免无限循环
+  }, [isOpen, loadFiles]);
 
   // 轮询解析状态
   useEffect(() => {
@@ -102,25 +128,6 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
 
     return () => clearInterval(intervalId);
   }, [isOpen, parsingIds]);
-
-  const loadFiles = async () => {
-    setIsLoading(true);
-    try {
-      const targetProjectId = projectId || 'global';
-      const response = await listProjectReferenceFiles(targetProjectId);
-      if (response.data?.files) {
-        setFiles(response.data.files);
-      }
-    } catch (error: any) {
-      console.error('加载参考文件列表失败:', error);
-      show({
-        message: error?.response?.data?.error?.message || error.message || '加载参考文件列表失败',
-        type: 'error',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSelectFile = (file: ReferenceFile) => {
     // 允许选择所有状态的文件（包括 pending 和 parsing）
