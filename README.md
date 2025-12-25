@@ -111,6 +111,10 @@
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/3e54bbba-88be-4f69-90a1-02e875c25420" />
 <img width="1748" height="538" alt="PPT与PDF导出" src="https://github.com/user-attachments/assets/647eb9b1-d0b6-42cb-a898-378ebe06c984" />
 
+## 🔥 近期更新
+- 【12-25】: https://github.com/Anionex/banana-slides/pull/82 支持了基于版面识别、局部重绘和递归分析的可编辑pptx导出方法，开发者可切换至该分支提前尝鲜⛱️
+- 【12-24】: main分支加入了基于nano-banana-pro背景提取的可编辑pptx导出方法（目前Beta）
+
 
 ## 🗺️ 开发计划
 
